@@ -27,7 +27,7 @@ def main():
     model = PINNHeat1D(input_dim=2, output_dim=1, hidden_layers=[50, 50, 50])
 
     # トレーナーセットアップ
-    trainer = Trainer(model, heat_1d_pde_residual, dataset, physics_params_heat.params, device=device)
+    trainer = Trainer(model, heat_1d_pde_residual, dataset, physics_params_heat.params["thermal_diffusibity"], device=device)
 
     # 学習実行
     trainer.train(adam_epochs=1000, lbfgs_epochs=500, save_path="trained_models/pinn_heat1d.pth")
