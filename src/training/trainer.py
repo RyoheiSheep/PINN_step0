@@ -40,7 +40,7 @@ class Trainer:
             u_pred = self.model(torch.cat([self.x, self.t], dim=1))
             mse_data = self.mse_loss(u_pred, self.u)
 
-            residual = self.physics_residual_func(self.model, self.x, self.t, **self.physics_params)
+            residual = self.physics_residual_func(self.model, self.x, self.t, self.physics_params)
             mse_pde = self.mse_loss(residual, torch.zeros_like(residual))
 
             loss = mse_data + mse_pde
