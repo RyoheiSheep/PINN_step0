@@ -1,5 +1,5 @@
 from .base_pinn import BasePINN
 
-class PINNHeat1D(BasePINN):
+class PINNNavier2D(BasePINN):
     def __init__(self, **kwargs):
-        super(PINNHeat1D, self).__init__(**kwargs)
+        super(PINNNavier2D, self).__init__(**kwargs)
