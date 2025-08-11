@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from configs import physics_params_heat
 from src.models.pinn_heat import PINNHeat1D
 
-def analytical_solution(X, T, alpha=physics_params_heat.params["alpha"]):
+def analytical_solution(X, T, alpha=physics_params_heat.params["thermal_diffusivity"]):
     """
     境界条件 u(0,t)=u(L,t)=0, 初期条件 u(x,0) = sin(pi x)
     L=1 と仮定
