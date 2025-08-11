@@ -38,3 +38,48 @@ def generate_heat_1d_dataset(n_samples=1000, alpha=0.01, x_range=(0,1), t_range=
     u = torch.tensor(u, dtype=torch.float32, device=device)
 
     return {'x': x, 't': t, 'u': u}
+
+def generate_cavity_dataset(n_interior=1000, n_boundary=200, device="cpu"):
+    """
+    2Dキャビティフローのデータセットを生成
+    出力:
+        dict { 'x':..., 'y':..., 'u':..., 'v':..., 'p':..., 'mask_boundary':..., 'mask_interior':... }
+    """
+    # 内部点
+    xi = np.random.rand(n_interior, 1)
+    yi = np.random.rand(n_interior, 1)
+
+    # 境界点（上壁 u=1, v=0 / 他の壁 u=0, v=0）
+    xb = np.linspace(0, 1, int(np.sqrt(n_boundary)))
+    yb = np.linspace(0, 1, int(np.sqrt(n_boundary)))
+    XB, YB = np.meshgrid(xb, yb)
+    boundary_coords = []
+    for i in range(len(xb)):
+        boundary_coords.append([xb[i], 0.0])
+        boundary_coords.append([xb[i], 1.0])
+        boundary_coords.append([0.0, yb[i]])
+        boundary_coords.append([1.0, yb[i]])
+    boundary_coords = np.unique(np.array(boundary_coords), axis=0)
+
+    # torch変換
+    x_all = torch.tensor(np.vstack([xi, boundary_coords[:,0:1]]), dtype=torch.float32, device=device)
+    y_all = torch.tensor(np.vstack([yi, boundary_coords[:,1:2]]), dtype=torch.float32, device=device)
+
+    # 初期値は未知（内部点は教師なし）
+    u_all = torch.zeros_like(x_all)
+    v_all = torch.zeros_like(x_all)
+    p_all = torch.zeros_like(x_all)
+
+    mask_boundary = torch.zeros(x_all.shape[0], dtype=torch.bool, device=device)
+    mask_boundary[-len(boundary_coords):] = True
+    mask_interior = ~mask_boundary
+
+    return {
+        "x": x_all,
+        "y": y_all,
+        "u": u_all,
+        "v": v_all,
+        "p": p_all,
+        "mask_boundary": mask_boundary,
+        "mask_interior": mask_interior
+    }

@@ -2,10 +2,10 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
-from src.models.pinn_navier import PINNNavier2D
-from src.physics.navier_stokes_2d import navier_stokes_2d_pde_residual
-from src.dataio.dataset_generator_navier import generate_cavity_dataset
-from src.training.trainer_navier import TrainerNavier
+from src.models.pinn_ns import PINNNavier2D
+from src.physics.navier_stokes import navier_stokes_2d_pde_residual
+from src.dataio.dataset_generator import generate_cavity_dataset
+from src.training.trainer_ns import TrainerNavier
 
 physics_params = {
     "Re": 100.0
