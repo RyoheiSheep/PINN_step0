@@ -1,17 +1,21 @@
 # scripts/simulate_heat.py
-
 import sys
 import os
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
 from configs import physics_params_heat
 from src.models.pinn_heat import PINNHeat1D
+
+def analytical_solution(X, T, alpha=physics_params_heat.params["alpha"]):
+    """
+    境界条件 u(0,t)=u(L,t)=0, 初期条件 u(x,0) = sin(pi x)
+    L=1 と仮定
+    """
+    return np.exp(-(np.pi**2) * alpha * T) * np.sin(np.pi * X)
 
 def simulate(model_path, save_dir="simulation_results", device='cpu'):
     device = torch.device(device)
@@ -23,7 +27,7 @@ def simulate(model_path, save_dir="simulation_results", device='cpu'):
     model.to(device)
     model.eval()
 
-    # シミュレーション用に格子を作成
+    # 格子生成
     x_vals = np.linspace(physics_params_heat.params["x_min"], physics_params_heat.params["x_max"], 100)
     t_vals = np.linspace(physics_params_heat.params["t_min"], physics_params_heat.params["t_max"], 100)
 
@@ -31,25 +35,30 @@ def simulate(model_path, save_dir="simulation_results", device='cpu'):
     x_flat = torch.tensor(X.flatten(), dtype=torch.float32, device=device).unsqueeze(1)
     t_flat = torch.tensor(T.flatten(), dtype=torch.float32, device=device).unsqueeze(1)
 
+    # PINN予測
     with torch.no_grad():
         u_pred = model(torch.cat([x_flat, t_flat], dim=1))
-    U = u_pred.cpu().numpy().reshape(X.shape)
+    U_pred = u_pred.cpu().numpy().reshape(X.shape)
 
-    # 結果をnpzで保存
-    np.savez(os.path.join(save_dir, "simulation_data.npz"), x=X, t=T, u=U)
+    # 解析解
+    U_analytical = analytical_solution(X, T)
+
+    # 結果保存
+    np.savez(os.path.join(save_dir, "simulation_data.npz"),
+             x=X, t=T, u_pred=U_pred, u_analytical=U_analytical)
     print(f"シミュレーション結果を保存しました: {os.path.join(save_dir, 'simulation_data.npz')}")
 
-    # 結果の可視化（例: t固定でx方向の温度分布）
-    import matplotlib.pyplot as plt
-    for idx, t_val in enumerate([0, 25, 50, 75, 99]):  # 時刻を5点抜粋
-        plt.plot(X[t_val, :], U[t_val, :], label=f"t={T[t_val,0]:.2f}")
+    # 比較プロット（例: 5つの時刻でx方向比較）
+    for idx in [0, 25, 50, 75, 99]:
+        plt.plot(X[idx, :], U_pred[idx, :], 'r-', label="PINN" if idx == 0 else "")
+        plt.plot(X[idx, :], U_analytical[idx, :], 'k--', label="Analytical" if idx == 0 else "")
     plt.xlabel("x")
     plt.ylabel("u(x,t)")
     plt.legend()
-    plt.title("PINN Heat 1D Simulation Results")
-    plt.savefig(os.path.join(save_dir, "simulation_plot.png"))
+    plt.title("PINN vs Analytical Solution")
+    plt.savefig(os.path.join(save_dir, "comparison_plot.png"))
     plt.close()
-    print(f"プロットを保存しました: {os.path.join(save_dir, 'simulation_plot.png')}")
+    print(f"比較プロットを保存しました: {os.path.join(save_dir, 'comparison_plot.png')}")
 
 if __name__ == "__main__":
     import argparse
