@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 from tqdm import tqdm
+import os
 
 class TrainerNavier:
     def __init__(self, model, physics_residual_func, dataset, physics_params, device="cpu"):
@@ -58,5 +59,16 @@ class TrainerNavier:
             pbar.set_postfix(loss=f"{loss.item():.6f}", pde=f"{loss_pde.item():.6f}", bc=f"{loss_bc.item():.6f}")
 
         if save_path:
-            torch.save(self.model.state_dict(), save_path)
-            print(f"モデル保存: {save_path}")
+            self.save_model(save_path)
+
+    def save_model(self, filepath):
+        """モデルのパラメータを保存"""
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        torch.save(self.model.state_dict(), filepath)
+        print(f"モデルを保存しました: {filepath}")
+
+    def load_model(self, filepath):
+        """モデルのパラメータを読み込み"""
+        self.model.load_state_dict(torch.load(filepath, map_location=self.device))
+        self.model.to(self.device)
+        print(f"モデルを読み込みました: {filepath}")
