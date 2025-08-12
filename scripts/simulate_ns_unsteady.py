@@ -20,13 +20,14 @@ def simulate_and_save(model_path, save_dir="simulation_ns_unsteady", device='cpu
     model.to(device)
     model.eval()
 
+    # 空間・時間のグリッド
     x_vals = np.linspace(physics_params_ns.params.get("x_min",0.0), physics_params_ns.params.get("x_max",1.0), nx)
     y_vals = np.linspace(physics_params_ns.params.get("y_min",0.0), physics_params_ns.params.get("y_max",1.0), ny)
     t_vals = np.linspace(physics_params_ns.params.get("t_min",0.0), physics_params_ns.params.get("t_max",1.0), nt)
 
     Xg, Yg = np.meshgrid(x_vals, y_vals)
-    frames = []
     filenames = []
+
     for it, t in enumerate(t_vals):
         XYT = np.stack([Xg.flatten(), Yg.flatten(), np.full(Xg.size, t)], axis=1)
         with torch.no_grad():
@@ -35,28 +36,34 @@ def simulate_and_save(model_path, save_dir="simulation_ns_unsteady", device='cpu
         v = pred[:,1].cpu().numpy().reshape(Yg.shape)
         p = pred[:,2].cpu().numpy().reshape(Yg.shape)
 
-        # save per-time npz
+        # 保存（npz）
         np.savez(os.path.join(save_dir, f"frame_{it:04d}.npz"), x=Xg, y=Yg, u=u, v=v, p=p, t=t)
 
-        # visualize speed magnitude (colormap) + velocity field (quiver)
+        # 速度の大きさ
         speed = np.sqrt(u**2 + v**2)
+
+        # 可視化（背景に速度の絶対値、上に流線図）
         fig, ax = plt.subplots(figsize=(4,4))
-        im = ax.imshow(speed, origin='lower', extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]])
-        
-        # quiver for velocity vectors
-        skip = (slice(None, None, 4), slice(None, None, 4))  # thin out arrows for readability
-        ax.quiver(Xg[skip], Yg[skip], u[skip], v[skip], color='white', scale=50)
+        im = ax.imshow(speed, origin='lower',
+                       extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]],
+                       cmap='viridis')
+        # 流線図
+        ax.streamplot(x_vals, y_vals, u, v, color='white', density=1.0, linewidth=0.5)
 
         ax.set_title(f"t={t:.3f}")
-        ax.set_xlabel("x"); ax.set_ylabel("y")
-        plt.colorbar(im, ax=ax, label="Speed magnitude")
-        png_path = os.path.join(save_dir, f"frame_{it:04d}.png")
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.colorbar(im, ax=ax, label="|velocity|")
         plt.tight_layout()
+
+        # PNG保存
+        png_path = os.path.join(save_dir, f"frame_{it:04d}.png")
         fig.savefig(png_path, dpi=100)
         plt.close(fig)
+
         filenames.append(png_path)
 
-    # make GIF
+    # GIF作成
     gif_path = os.path.join(save_dir, "flow_evolution.gif")
     with imageio.get_writer(gif_path, mode='I', duration=0.2) as writer:
         for fname in filenames:
@@ -64,7 +71,7 @@ def simulate_and_save(model_path, save_dir="simulation_ns_unsteady", device='cpu
             writer.append_data(image)
     print(f"Saved GIF: {gif_path}")
 
-    # save final time png (already saved as last frame)
+    # 最終フレームPNG
     final_png = filenames[-1]
     final_png_out = os.path.join(save_dir, "final_frame.png")
     os.replace(final_png, final_png_out)
