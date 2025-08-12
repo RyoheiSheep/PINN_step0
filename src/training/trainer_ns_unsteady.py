@@ -2,6 +2,7 @@
 import torch
 import torch.optim as optim
 from tqdm import tqdm
+import numpy as np
 import os
 from ..physics.navier_stokes_unsteady import navier_stokes_2d_unsteady_residual
 
