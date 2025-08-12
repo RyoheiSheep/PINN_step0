@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
 from src.models.pinn_ns import PINNNavier2D
-from src.dataio.dataset_generator_ns import generate_cavity_unsteady_dataset
+from src.dataio.dataset_generator import generate_cavity_unsteady_dataset
 from src.training.trainer_ns_unsteady import TrainerNavierUnsteady
 
 physics_params = {"Re": 100.0}
