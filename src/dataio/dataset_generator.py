@@ -83,3 +83,65 @@ def generate_cavity_dataset(n_interior=1000, n_boundary=200, device="cpu"):
         "mask_boundary": mask_boundary,
         "mask_interior": mask_interior
     }
+
+
+def generate_cavity_unsteady_dataset(n_interior=2000, n_boundary=400, n_initial=400,
+                                     x_range=(0.0,1.0), y_range=(0.0,1.0), t_range=(0.0,1.0),
+                                     device='cpu'):
+    """
+    サンプリング:
+      - interior points (x,y,t) for PDE residual
+      - boundary points (x,y,t) for BC (including moving lid at y=1)
+      - initial points (x,y,t=0) for IC (u=v=0)
+    Returns dict with tensors on device.
+    """
+    # interior points random in space-time
+    xi = np.random.uniform(x_range[0], x_range[1], (n_interior, 1))
+    yi = np.random.uniform(y_range[0], y_range[1], (n_interior, 1))
+    ti = np.random.uniform(t_range[0], t_range[1], (n_interior, 1))
+
+    # boundary point generations (uniform on boundaries with random time)
+    nb_side = int(math.sqrt(n_boundary))
+    xb = np.linspace(x_range[0], x_range[1], nb_side)
+    yb = np.linspace(y_range[0], y_range[1], nb_side)
+    # collect four walls
+    bcoords = []
+    for x_ in xb:
+        bcoords.append([x_, y_range[0]])
+        bcoords.append([x_, y_range[1]])
+    for y_ in yb:
+        bcoords.append([x_range[0], y_])
+        bcoords.append([x_range[1], y_])
+    bcoords = np.unique(np.array(bcoords), axis=0)
+    nb_all = bcoords.shape[0]
+    tb = np.random.uniform(t_range[0], t_range[1], (nb_all, 1))
+
+    # initial points at t=0 (uniform space)
+    ni_side = int(math.sqrt(n_initial))
+    xi0 = np.linspace(x_range[0], x_range[1], ni_side)
+    yi0 = np.linspace(y_range[0], y_range[1], ni_side)
+    X0, Y0 = np.meshgrid(xi0, yi0)
+    X0 = X0.reshape(-1,1)
+    Y0 = Y0.reshape(-1,1)
+    t0 = np.zeros_like(X0)
+
+    # convert to torch
+    interior = {
+        'x': torch.tensor(xi, dtype=torch.float32, device=device),
+        'y': torch.tensor(yi, dtype=torch.float32, device=device),
+        't': torch.tensor(ti, dtype=torch.float32, device=device)
+    }
+    boundary = {
+        'x': torch.tensor(bcoords[:,0:1], dtype=torch.float32, device=device),
+        'y': torch.tensor(bcoords[:,1:2], dtype=torch.float32, device=device),
+        't': torch.tensor(tb, dtype=torch.float32, device=device)
+    }
+    initial = {
+        'x': torch.tensor(X0, dtype=torch.float32, device=device),
+        'y': torch.tensor(Y0, dtype=torch.float32, device=device),
+        't': torch.tensor(t0, dtype=torch.float32, device=device)
+    }
+
+    # BC target values (u,v) on boundary: top lid (y=1) -> u=1, v=0; others -> u=v=0
+    # We'll compute BC target when forming loss to allow time-dependent lids (here constant).
+    return {'interior': interior, 'boundary': boundary, 'initial': initial}
