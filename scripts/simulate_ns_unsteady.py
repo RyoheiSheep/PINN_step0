@@ -38,13 +38,18 @@ def simulate_and_save(model_path, save_dir="simulation_ns_unsteady", device='cpu
         # save per-time npz
         np.savez(os.path.join(save_dir, f"frame_{it:04d}.npz"), x=Xg, y=Yg, u=u, v=v, p=p, t=t)
 
-        # create a RGB image for GIF: visualize speed magnitude
+        # visualize speed magnitude (colormap) + velocity field (quiver)
         speed = np.sqrt(u**2 + v**2)
         fig, ax = plt.subplots(figsize=(4,4))
         im = ax.imshow(speed, origin='lower', extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]])
+        
+        # quiver for velocity vectors
+        skip = (slice(None, None, 4), slice(None, None, 4))  # thin out arrows for readability
+        ax.quiver(Xg[skip], Yg[skip], u[skip], v[skip], color='white', scale=50)
+
         ax.set_title(f"t={t:.3f}")
         ax.set_xlabel("x"); ax.set_ylabel("y")
-        plt.colorbar(im, ax=ax)
+        plt.colorbar(im, ax=ax, label="Speed magnitude")
         png_path = os.path.join(save_dir, f"frame_{it:04d}.png")
         plt.tight_layout()
         fig.savefig(png_path, dpi=100)
