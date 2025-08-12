@@ -2,6 +2,7 @@
 
 import numpy as np
 import torch
+import math
 
 def heat_1d_analytical_solution(x, t, alpha=0.01):
     """
