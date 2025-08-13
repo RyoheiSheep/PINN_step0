@@ -15,7 +15,7 @@ def simulate_and_save(model_path, save_dir="simulation_ns_unsteady", device='cpu
     device = torch.device(device)
 
     # load model
-    model = PINNNavier2D(input_dim=3, output_dim=3, hidden_layers=[128,128,128])
+    model = PINNNavier2D(input_dim=3, output_dim=3, hidden_layers=[128,128,128,128])
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
